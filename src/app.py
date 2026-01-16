@@ -8,7 +8,8 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User
+from models import db, User, Empresa
+from sqlalchemy import select
 #from models import Person
 
 app = Flask(__name__)
@@ -26,6 +27,8 @@ db.init_app(app)
 CORS(app)
 setup_admin(app)
 
+# BEGIN CODE
+
 # Handle/serialize errors like a JSON object
 @app.errorhandler(APIException)
 def handle_invalid_usage(error):
@@ -38,12 +41,50 @@ def sitemap():
 
 @app.route('/user', methods=['GET'])
 def handle_hello():
+    # leer usuarios de la base de datos
+    print('donde voy a aparecer')
+    all_users = User.query.all()
+    print(all_users)
+    results = list(map( lambda usuario: usuario.serialize() ,all_users))
+    print(results)
+    
+    # devolver esos susuarios en la respuesta
 
     response_body = {
-        "msg": "Hello, this is your GET /user response "
+        "msg": "Hello, this is your GET /user response ",
+        "usuarios": results
     }
 
     return jsonify(response_body), 200
+
+
+@app.route('/company', methods=['GET'])
+def get_companies():    
+    # all_companies = Empresa.query.all()
+    all_companies = db.session.execute(select(Empresa)).scalars().all()
+    results = list(map( lambda company: company.serialize() ,all_companies))
+    
+    return jsonify(results), 200
+
+@app.route('/company/<int:company_id>', methods=['GET'])
+def get_company(company_id):   
+    # company = Empresa.query.filter_by(id = company_id).first() 
+    # company = db.session.get(Empresa, company_id)
+    company = db.session.execute(select(Empresa).where(Empresa.id == company_id)).scalar_one_or_none()
+    
+    return jsonify(company.serialize()), 200
+
+@app.route('/test', methods=['GET'])
+def test():
+
+    response_body = {
+        "msg": "test "
+    }
+
+    return jsonify(response_body), 200
+
+
+# END CODE
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
