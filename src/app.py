@@ -74,6 +74,64 @@ def get_company(company_id):
     
     return jsonify(company.serialize()), 200
 
+@app.route('/company', methods=['POST'])
+def add_company():    
+    print('se va a crear company')
+    # PSEUDOCODIGO
+    
+    # toma los datos del request
+    print(request)
+    print(request.get_json())
+    print(request.json)
+    # print(request.json['nombre'])
+    body = request.get_json()
+
+    if "nombre" not in body:
+        return {
+                    "msg":"Debes enviar el nombre"
+                },400
+
+    if body["nombre"] == '':
+        return {
+                    "msg":"El nombre no puede ser vacio"
+                },400
+
+    # guardar la company en BD
+    company = Empresa(**body)
+    db.session.add(company)
+    db.session.commit()
+
+
+    # all_companies = Empresa.query.all()
+    all_companies = db.session.execute(select(Empresa)).scalars().all()
+    results = list(map( lambda company: company.serialize() ,all_companies))
+    
+    return jsonify(results), 200
+
+
+@app.route('/company/<int:company_id>', methods=['DELETE'])
+def delete_company(company_id):   
+    print('se va a eliminar')
+    # company = Empresa.query.filter_by(id = company_id).first() 
+    # company = db.session.get(Empresa, company_id)
+    
+    company = db.session.execute(select(Empresa).where(Empresa.id == company_id)).scalar_one_or_none()
+    print(company)
+    if company is None :
+        return {
+                    "msg":"No existe la empresa que quieres eliminar"
+                },400
+
+    db.session.delete(company)
+    db.session.commit()
+
+
+    response_body = {
+        "msg": "se elimino la empresa " + company.nombre
+    }
+
+    return jsonify(response_body), 200
+
 @app.route('/test', methods=['GET'])
 def test():
 
@@ -82,6 +140,8 @@ def test():
     }
 
     return jsonify(response_body), 200
+
+
 
 
 # END CODE
